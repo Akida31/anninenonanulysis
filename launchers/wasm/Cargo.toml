@@ -1,0 +1,18 @@
+[package]
+name = "wasm_integral"
+version = "0.1.0"
+edition = "2021"
+workspace = "../.."
+
+[features]
+default = []
+inspect = ["integral/inspect", "wasm-logger"]
+
+[dependencies]
+bevy.workspace = true
+log.workspace = true
+integral = { path = "../.." }
+yew = { version = "0.20", features = ["csr"] }
+
+wasm-logger = { version = "0.2.0", optional = true }
+web-sys = { version = "0.3.64", features = ["Document", "Window"] }
