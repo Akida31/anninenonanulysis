@@ -2,15 +2,11 @@
 name = "integral"
 version = "0.1.0"
 edition = "2021"
-
-
-
 license = "MIT OR Apache-2.0"
-
 
 [workspace]
 resolver = "2"
-members = ["launchers/wasm"]
+members = ["launchers/wasm", "launchers/native", "bevy_touch_camera"]
 
 [lib]
 crate-type = ["cdylib", "rlib"]
@@ -36,7 +32,7 @@ opt-level = 's'
 
 [workspace.dependencies]
 log = "0.4.19"
-bevy = { version = "0.11", default-features = false, features = [
+bevy = { version = "0.12", default-features = false, features = [
     "android_shared_stdcxx",
     "tonemapping_luts",
     "bevy_render",
@@ -52,6 +48,8 @@ bevy = { version = "0.11", default-features = false, features = [
     "png",
     "x11",
     "wav",
+    "webgl2",
+    "bevy_gizmos",
 ] }
 
 [features]
@@ -65,4 +63,8 @@ inspect = [
 
 [dependencies]
 bevy.workspace = true
+bevy-inspector-egui = "0.21.0"
+bevy_panorbit_camera = { version = "0.9.0", features = ["bevy_egui"] }
+# bevy_touch_camera = "0.1.1"
+bevy_touch_camera = { version = "0.1.1", path = "bevy_touch_camera" }
 log.workspace = true

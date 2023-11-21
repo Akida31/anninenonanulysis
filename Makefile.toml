@@ -1,7 +1,7 @@
 [env]
 CARGO_MAKE_EXTEND_WORKSPACE_MAKEFILE = true
 CARGO_MAKE_WORKSPACE_EMULATION = true
-CARGO_MAKE_CRATE_WORKSPACE_MEMBERS = ["launchers/wasm"]
+CARGO_MAKE_CRATE_WORKSPACE_MEMBERS = ["launchers/native","launchers/wasm"]
 
 [config]
 default_to_workspace = true
@@ -59,6 +59,9 @@ dependencies = [
     "release-web",
 ]
 
-[tasks.dev]
+[tasks.dev-web]
 run_task.name = "run-web"
+
+[tasks.dev]
+run_task.name = "run-native"
 

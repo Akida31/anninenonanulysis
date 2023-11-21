@@ -1,4 +1,4 @@
-use game::LAUNCHER_TITLE;
+use integral::LAUNCHER_TITLE;
 use yew::prelude::*;
 
 fn set_window_title(title: &str) {

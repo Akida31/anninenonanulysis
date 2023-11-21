@@ -1,0 +1,13 @@
+[package]
+name = "native_integral"
+version = "0.1.0"
+edition = "2021"
+workspace = "../.."
+
+[features]
+default = []
+inspect = ["integral/inspect"]
+
+[dependencies]
+bevy.workspace = true
+integral = { path = "../.." }

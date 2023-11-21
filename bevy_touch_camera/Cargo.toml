@@ -1,0 +1,38 @@
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[package]
+name = "bevy_touch_camera"
+version = "0.1.1"
+edition = "2021"
+authors = ["Dorian Bucur <dorian.bucur@outlook.com>"]
+description = "Touch camera for Bevy that supports drag and pinch to zoom"
+repository = "https://github.com/d-bucur/bevy_touch_camera"
+homepage = "https://github.com/d-bucur/bevy_touch_camera"
+keywords = ["bevy", "touch", "camera"]
+license = "MIT OR Apache-2.0"
+readme = "README.md"
+categories = ["game-development"]
+exclude = ["assets/*"]
+
+[dependencies]
+bevy.workspace = true
+# bevy = { version = "0.12", default-features = false }
+
+[dev-dependencies.bevy]
+version = "0.11.2"
+default-features = false
+features = [
+    "bevy_core_pipeline",
+]
+
+[features]
+default = ["bevy/bevy_core_pipeline"]
+example = ["bevy/bevy_winit", "bevy/x11", "bevy/bevy_sprite", "bevy/bevy_ui", "bevy/png"]
+
+[[example]]
+name = "simple"
+required-features = ["example"]
+
+[[example]]
+name = "presentation"
+required-features = ["example"]
