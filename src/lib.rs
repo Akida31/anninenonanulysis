@@ -8,11 +8,11 @@ pub const LAUNCHER_TITLE: &str = "integral";
 #[derive(Reflect, Resource, InspectorOptions, Clone)]
 #[reflect(Resource, InspectorOptions)]
 struct Config {
-    show_function: bool,
     #[inspector(min = 0, max = 40)]
     n: u8,
-    show_full_grid: bool,
     show_incremental_cubes: bool,
+    show_function: bool,
+    show_full_grid: bool,
 }
 
 impl Default for Config {
@@ -21,9 +21,7 @@ impl Default for Config {
             n: 1,
             show_full_grid: true,
             show_incremental_cubes: true,
-            // TODO
-            // show_function: true,
-            show_function: false,
+            show_function: true,
         }
     }
 }
@@ -426,10 +424,22 @@ fn setup(mut commands: Commands, mut gizmo: ResMut<GizmoConfig>) {
     // camera
     commands.spawn((
         Camera3dBundle {
-            transform: Transform::from_xyz(-6., 3.5, 2.0).looking_at(Vec3::ZERO, Vec3::Y),
+            transform: Transform::from_xyz(-5., 3., 1.5).looking_at(Vec3::ZERO, Vec3::Y),
             ..default()
         },
-        PanOrbitCamera::default(),
+        PanOrbitCamera {
+            focus: Vec3::new(0.8, 1.5, 0.7),
+            target_focus: Vec3::new(0.8, 1.5, 0.7),
+            alpha: Some(-1.5),
+            target_alpha: -1.5,
+            beta: Some(0.2),
+            target_beta: 0.2,
+            radius: Some(5.5),
+            target_radius: 5.5,
+            scale: Some(1.0),
+            initialized: true,
+            ..default()
+        },
     ));
 
     // set grid line width
