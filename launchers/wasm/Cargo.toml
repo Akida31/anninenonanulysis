@@ -2,15 +2,36 @@
 name = "wasm_integral"
 version = "0.1.0"
 edition = "2021"
-workspace = "../.."
 
 [features]
 default = []
 inspect = ["integral/inspect", "wasm-logger"]
 
+[workspace]
+
 [dependencies]
-bevy.workspace = true
-log.workspace = true
+#bevy.workspace = true
+#log.workspace = true
+log = "0.4.19"
+bevy = { version = "0.12", default-features = false, features = [
+    "android_shared_stdcxx",
+    "tonemapping_luts",
+    "bevy_render",
+    "bevy_asset",
+    "bevy_audio",
+    "bevy_scene",
+    "bevy_winit",
+    "bevy_text",
+    "bevy_pbr",
+    "bevy_ui",
+    "zstd",
+    "ktx2",
+    "png",
+    "x11",
+    "wav",
+    "webgl2",
+    "bevy_gizmos",
+] }
 integral = { path = "../.." }
 yew = { version = "0.20", features = ["csr"] }
 

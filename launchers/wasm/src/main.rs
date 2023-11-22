@@ -5,7 +5,8 @@ fn set_window_title(title: &str) {
     web_sys::window()
         .and_then(|w| w.document())
         .expect("Unable to get DOM")
-        .set_title(title);
+        .set_title(title)
+    ;
 }
 
 #[function_component(Root)]
@@ -13,7 +14,8 @@ fn view() -> Html {
     set_window_title(LAUNCHER_TITLE);
 
     html! {
-        <> </>
+        <div oncontextmenu={|e: MouseEvent| e.prevent_default()}>
+        </div>
     }
 }
 

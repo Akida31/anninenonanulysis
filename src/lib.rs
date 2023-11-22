@@ -136,13 +136,14 @@ fn add_cubes(
                     Cube { size_n: n },
                     PbrBundle {
                         mesh: meshes.add(Mesh::from(shape::Box {
-                            min_x: x,
-                            max_x: x + size,
-                            min_y: previous_height,
-                            max_y: this_height,
-                            min_z: y,
-                            max_z: y + size,
+                            min_x: 0.,
+                            max_x: size,
+                            min_y: 0.,
+                            max_y: this_height - previous_height,
+                            min_z: 0.,
+                            max_z: size,
                         })),
+                        transform: Transform::from_xyz(x, previous_height, y),
                         material: materials
                             .add(Color::rgb_u8(124, (40 * n).min(255), 255 / n).into()),
                         // transform: Transform::from_xyz(x, z, y),

@@ -6,7 +6,11 @@ license = "MIT OR Apache-2.0"
 
 [workspace]
 resolver = "2"
-members = ["launchers/wasm", "launchers/native", "bevy_touch_camera"]
+members = [
+    # "launchers/wasm",
+    "launchers/native",
+    "bevy_touch_camera"
+]
 
 [lib]
 crate-type = ["cdylib", "rlib"]
@@ -28,6 +32,8 @@ opt-level = 3
 opt-level = 's'
 
 [target.'cfg(target_arch="wasm32")'.profile.release]
+opt-level = 's'
+[target.'cfg(target="wasm32-unknown-unknown")'.profile.release]
 opt-level = 's'
 
 [workspace.dependencies]
