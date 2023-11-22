@@ -1,5 +1,6 @@
 use bevy::{ecs::query::QuerySingleError, log::LogPlugin, prelude::*, window::WindowMode};
 use bevy_inspector_egui::prelude::*;
+#[cfg(feature = "inspect")]
 use bevy_inspector_egui::quick::ResourceInspectorPlugin;
 use bevy_panorbit_camera::{PanOrbitCamera, PanOrbitCameraPlugin};
 
@@ -50,7 +51,6 @@ pub fn app(fullscreen: bool) -> App {
             })
             .disable::<LogPlugin>(),
     )
-    .add_plugins(ResourceInspectorPlugin::<Config>::default())
     .add_plugins(PanOrbitCameraPlugin)
     .add_plugins(bevy_touch_camera::TouchCameraPlugin::default());
 
@@ -63,10 +63,13 @@ pub fn app(fullscreen: bool) -> App {
     app.add_systems(Startup, setup)
         .add_systems(Update, grid)
         .add_systems(Update, plane)
+        .add_systems(Update, button_system)
         .add_systems(Update, change_cubes)
         .add_systems(Update, delete_cubes.after(change_cubes))
         .add_systems(Update, add_cubes.after(delete_cubes));
 
+    #[cfg(feature = "inspect")]
+    app.add_plugins(ResourceInspectorPlugin::<Config>::default());
     #[cfg(feature = "inspect")]
     app.add_plugins(bevy_inspector_egui::quick::WorldInspectorPlugin::new());
 
@@ -146,7 +149,6 @@ fn add_cubes(
                         transform: Transform::from_xyz(x, previous_height, y),
                         material: materials
                             .add(Color::rgb_u8(124, (40 * n).min(255), 255 / n).into()),
-                        // transform: Transform::from_xyz(x, z, y),
                         ..default()
                     },
                 ));
@@ -155,12 +157,10 @@ fn add_cubes(
     };
     for ev in er.read() {
         if ev.show_incremental_cubes {
-            dbg!("HE");
             for n in (ev.prev_n + 1)..=ev.new_n {
                 run(n, n - 1);
             }
         } else {
-            dbg!("HA");
             run(ev.new_n, 0);
         }
     }
@@ -425,7 +425,8 @@ fn setup(mut commands: Commands, mut gizmo: ResMut<GizmoConfig>) {
     // camera
     commands.spawn((
         Camera3dBundle {
-            transform: Transform::from_xyz(-5., 3., 1.5).looking_at(Vec3::ZERO, Vec3::Y),
+            transform: Transform::from_xyz(-4.5, 2., 1.0)
+                .looking_at(Vec3::new(2., 2., 2.), Vec3::Y),
             ..default()
         },
         PanOrbitCamera {
@@ -438,11 +439,223 @@ fn setup(mut commands: Commands, mut gizmo: ResMut<GizmoConfig>) {
             radius: Some(5.5),
             target_radius: 5.5,
             scale: Some(1.0),
-            initialized: true,
+            initialized: false,
             ..default()
         },
     ));
+    commands.spawn(
+        TextBundle::from_section("Nutze deine Maus, um die Kamera zu bewegen. linke Maus - drehen | rechte Maus - bewegen | zoom Maus - nicht zoomen\nFalls du ein Mensch bist und noch keine Maus gefangen hast, benutze deine Finger (eine Maus ist aber immer von Vorteil!)",
+            TextStyle { font_size: 16., ..default() }).with_style(
+            Style {
+                position_type: PositionType::Absolute,
+                top: Val::Px(25.0),
+                left: Val::Px(25.0),
+                ..default()
+            },
+        ),
+    );
+    commands
+        .spawn(NodeBundle {
+            style: Style {
+                left: Val::Px(25.0),
+                width: Val::Percent(20.0),
+                height: Val::Percent(100.0),
+                justify_content: JustifyContent::Center,
+                //align_self: AlignSelf::Center,
+                // align_items: AlignItems::Center,
+                flex_direction: FlexDirection::Column,
+                ..default()
+            },
+            ..default()
+        })
+        .with_children(|parent| {
+            let button = || ButtonBundle {
+                style: Style {
+                    width: Val::Px(200.0),
+                    height: Val::Px(65.0),
+                    border: UiRect::all(Val::Px(5.0)),
+                    justify_content: JustifyContent::Center,
+                    align_items: AlignItems::Center,
+                    padding: UiRect::all(Val::Px(5.0)),
+                    margin: UiRect::vertical(Val::Px(5.0)),
+                    ..default()
+                },
+                border_color: BorderColor(Color::BLACK),
+                background_color: NORMAL_BUTTON.into(),
+                ..default()
+            };
+            let text_child = |s: String| {
+                move |parent: &mut ChildBuilder| {
+                    parent.spawn(TextBundle::from_section(
+                        s,
+                        TextStyle {
+                            font_size: 20.0,
+                            color: Color::rgb(0.9, 0.9, 0.9),
+                            ..default()
+                        },
+                    ));
+                }
+            };
+            /*parent.spawn((
+                TextBundle::from_section(
+                    format!("n: {}", Config::default().n),
+                    TextStyle {
+                        font_size: 22.,
+                        ..default()
+                    },
+                )
+                .with_style(Style {
+                    width: Val::Px(200.0),
+                    height: Val::Px(65.0),
+                    border: UiRect::all(Val::Px(5.0)),
+                    justify_content: JustifyContent::Center,
+                    align_items: AlignItems::Center,
+                    padding: UiRect::all(Val::Px(5.0)),
+                    margin: UiRect::vertical(Val::Px(5.0)),
+                    ..default()
+                }),
+                NText,
+            ));*/
+            parent
+                .spawn(NodeBundle {
+                    style: Style {
+                        width: Val::Px(200.0),
+                        height: Val::Px(65.0),
+                        border: UiRect::all(Val::Px(5.0)),
+                        justify_content: JustifyContent::Center,
+                        align_items: AlignItems::Center,
+                        padding: UiRect::all(Val::Px(5.0)),
+                        margin: UiRect::vertical(Val::Px(5.0)),
+                        ..default()
+                    },
+                    border_color: BorderColor(Color::BLACK),
+                    background_color: NORMAL_BUTTON.into(),
+                    ..default()
+                })
+                .with_children(|parent| {
+                    parent.spawn((TextBundle::from_section(
+                        format!("n: {}", Config::default().n),
+                        TextStyle {
+                            font_size: 22.0,
+                            color: Color::rgb(0.9, 0.9, 0.9),
+                            ..default()
+                        },
+                    ), NText));
+                });
+
+            parent
+                .spawn((button(), ConfigMore))
+                .with_children(text_child(String::from("Meeehr")));
+            parent
+                .spawn((button(), ConfigLess))
+                .with_children(text_child(String::from("(weniger)")));
+            parent
+                .spawn((button(), ConfigFunctionGraph))
+                .with_children(text_child(format!("{} :)", SHOW_FUN)));
+            parent
+                .spawn((button(), ConfigIncremental))
+                .with_children(text_child(format!("{} :)", SHOW_INC)));
+            parent
+                .spawn((button(), ConfigCoord))
+                .with_children(text_child(format!("{} :)", SHOW_COORD)));
+        });
 
     // set grid line width
     gizmo.line_width = 0.5;
+}
+
+const SHOW_FUN: &'static str = "Zeige Funktionsgraph";
+const SHOW_INC: &'static str = "Zeige Zwischendinge";
+const SHOW_COORD: &'static str = "Zeige alle Koordinaten";
+
+const NORMAL_BUTTON: Color = Color::rgb(0.15, 0.15, 0.15);
+const HOVERED_BUTTON: Color = Color::rgb(0.25, 0.25, 0.25);
+const PRESSED_BUTTON: Color = Color::rgb(0.35, 0.75, 0.35);
+
+#[derive(Component)]
+struct ConfigMore;
+#[derive(Component)]
+struct ConfigLess;
+#[derive(Component)]
+struct ConfigFunctionGraph;
+#[derive(Component)]
+struct ConfigIncremental;
+#[derive(Component)]
+struct ConfigCoord;
+#[derive(Component)]
+struct NText;
+
+fn button_system(
+    mut interaction_query: Query<
+        (
+            &Interaction,
+            &mut BackgroundColor,
+            &mut BorderColor,
+            &Children,
+            (
+                Option<&ConfigMore>,
+                Option<&ConfigLess>,
+                Option<&ConfigFunctionGraph>,
+                Option<&ConfigIncremental>,
+                Option<&ConfigCoord>,
+            ),
+        ),
+        (Changed<Interaction>, With<Button>),
+    >,
+    mut text_query: Query<&mut Text, Without<NText>>,
+    mut n_text_query: Query<&mut Text, With<NText>>,
+    mut config: ResMut<Config>,
+) {
+    for (interaction, mut color, mut border_color, children, (more, less, fun, inc, coord)) in
+        &mut interaction_query
+    {
+        let mut text = text_query.get_mut(children[0]).unwrap();
+        let mut n_text = n_text_query.get_single_mut().unwrap();
+        match *interaction {
+            Interaction::Pressed => {
+                *color = PRESSED_BUTTON.into();
+                border_color.0 = Color::RED;
+                if more.is_some() {
+                    config.n += 1;
+                    n_text.sections[0].value = format!("n: {}", config.n);
+                } else if less.is_some() {
+                    config.n = config.n.saturating_sub(1);
+                    n_text.sections[0].value = format!("n: {}", config.n);
+                } else if fun.is_some() {
+                    config.show_function = !config.show_function;
+                    text.sections[0].value = format!(
+                        "{}{}",
+                        SHOW_FUN,
+                        if config.show_function { " :) " } else { "" }
+                    );
+                } else if inc.is_some() {
+                    config.show_incremental_cubes = !config.show_incremental_cubes;
+                    text.sections[0].value = format!(
+                        "{}{}",
+                        SHOW_INC,
+                        if config.show_incremental_cubes {
+                            " :) "
+                        } else {
+                            ""
+                        }
+                    );
+                } else if coord.is_some() {
+                    config.show_full_grid = !config.show_full_grid;
+                    text.sections[0].value = format!(
+                        "{}{}",
+                        SHOW_COORD,
+                        if config.show_full_grid { " :) " } else { "" }
+                    );
+                }
+            }
+            Interaction::Hovered => {
+                *color = HOVERED_BUTTON.into();
+                border_color.0 = Color::WHITE;
+            }
+            Interaction::None => {
+                *color = NORMAL_BUTTON.into();
+                border_color.0 = Color::BLACK;
+            }
+        }
+    }
 }

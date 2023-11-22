@@ -56,6 +56,7 @@ bevy = { version = "0.12", default-features = false, features = [
     "wav",
     "webgl2",
     "bevy_gizmos",
+    "default_font",
 ] }
 
 [features]
