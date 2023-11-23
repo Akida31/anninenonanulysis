@@ -1,5 +1,8 @@
 use bevy::{
-    core_pipeline::{bloom::{BloomSettings, BloomCompositeMode}, tonemapping::Tonemapping},
+    core_pipeline::{
+        bloom::{BloomCompositeMode, BloomSettings},
+        tonemapping::Tonemapping,
+    },
     ecs::query::QuerySingleError,
     log::LogPlugin,
     prelude::*,
@@ -14,7 +17,11 @@ use bevy_panorbit_camera::{PanOrbitCamera, PanOrbitCameraPlugin};
 pub const LAUNCHER_TITLE: &str = "integral";
 
 #[derive(Reflect, Resource, Clone)]
-#[cfg_attr(feature = "inspect", derive(InspectorOptions), reflect(InspectorOptions))]
+#[cfg_attr(
+    feature = "inspect",
+    derive(InspectorOptions),
+    reflect(InspectorOptions)
+)]
 struct Config {
     #[cfg_attr(feature = "inspect", inspector(min = 0, max = 40))]
     n: u8,
@@ -802,7 +809,12 @@ fn party_system(
         for (cube, mut material) in &mut cubes {
             //let mut material = materials.get_mut(material);
             *material = materials.add(StandardMaterial {
-                emissive: Color::rgb_u8(124, (40 * cube.size_n).min(255), 255 / cube.size_n).into(),
+                emissive: Color::Rgba {
+                    red: ((1. * seconds + cube.size_n as f32).sin() / 2.0 + 0.5) / 1.5,
+                    green: ((cube.size_n as f32 * 2. * seconds).cos() / 2.0 + 0.5),
+                    blue: 1. / cube.size_n as f32,
+                    alpha: 1.0,
+                },
                 ..default()
             });
         }
