@@ -8,13 +8,15 @@ use bevy::{
     prelude::*,
     window::WindowMode,
 };
+#[cfg(feature = "embedded")]
+use bevy_embedded_assets::EmbeddedAssetPlugin;
 #[cfg(feature = "inspect")]
 use bevy_inspector_egui::prelude::*;
 #[cfg(feature = "inspect")]
 use bevy_inspector_egui::quick::ResourceInspectorPlugin;
 use bevy_panorbit_camera::{PanOrbitCamera, PanOrbitCameraPlugin};
 
-pub const LAUNCHER_TITLE: &str = "integral";
+pub const LAUNCHER_TITLE: &str = "Anninenonanulysis";
 
 #[derive(Reflect, Resource, Clone)]
 #[cfg_attr(
@@ -84,6 +86,8 @@ pub fn app(fullscreen: bool) -> App {
         .add_systems(Update, delete_cubes.after(change_cubes))
         .add_systems(Update, add_cubes.after(delete_cubes));
 
+    #[cfg(feature = "embedded")]
+    app.add_plugins(EmbeddedAssetPlugin::default());
     #[cfg(feature = "inspect")]
     app.add_plugins(ResourceInspectorPlugin::<Config>::default());
     #[cfg(feature = "inspect")]
@@ -183,7 +187,7 @@ fn add_cubes(
                         })),
                         transform: Transform::from_xyz(x, previous_height, y),
                         material: materials
-                            .add(Color::rgb_u8(124, (40 * n).min(255), 255 / n).into()),
+                            .add(Color::rgb_u8(124, (40 * n.min(6)).min(255), 255 / n).into()),
                         ..default()
                     },
                 ));
@@ -437,21 +441,6 @@ fn setup(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    // circular base
-    /*commands.spawn(PbrBundle {
-        mesh: meshes.add(shape::Circle::new(4.0).into()),
-        material: materials.add(Color::WHITE.into()),
-        transform: Transform::from_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2)),
-        ..default()
-    });
-    */
-    // cube
-    /*commands.spawn(PbrBundle {
-        mesh: meshes.add(Mesh::from(shape::Cube { size: 0.5 })),
-        material: materials.add(Color::rgb_u8(200, 50, 200).into()),
-        transform: Transform::from_xyz(1.0, 0.0, 1.0),
-        ..default()
-    });*/
     // sky
     commands.spawn(PbrBundle {
         mesh: meshes.add(Mesh::from(shape::Box::default())),
@@ -667,7 +656,7 @@ fn button_system(
                 *color = HOVERED_BUTTON.into();
                 border_color.0 = Color::RED;
                 if more.is_some() {
-                    config.n += 1;
+                    config.n = (config.n + 1).min(6);
                     n_text.sections[0].value = format!("n: {}", config.n);
                 } else if less.is_some() {
                     config.n = config.n.saturating_sub(1);
@@ -744,6 +733,7 @@ fn party_system(
     mut commands: Commands,
     mut cubes: Query<(&mut Cube, &mut Handle<StandardMaterial>)>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    asset_server: Res<AssetServer>,
 ) {
     let seconds = time.elapsed_seconds();
 
@@ -801,11 +791,11 @@ fn party_system(
             });
             commands.spawn((
                 AudioBundle {
-                    source: asset_server.load("space_cates.mp3"),
-                    settings: PlaybackSettings {
-                        mode: PlaybackMode::Loop,
-                        ..default()
-                    },
+                    #[cfg(feature = "embedded")]
+                    source: asset_server.load("embedded://space_cats.wav"),
+                    #[cfg(not(feature = "embedded"))]
+                    source: asset_server.load("space_cats.wav"),
+                    settings: PlaybackSettings::LOOP,
                 },
                 MusicTag,
             ));
