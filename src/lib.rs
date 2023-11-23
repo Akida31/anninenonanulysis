@@ -93,6 +93,9 @@ pub fn app(fullscreen: bool) -> App {
 }
 
 #[derive(Component)]
+struct MusicTag;
+
+#[derive(Component)]
 struct Plane;
 
 #[derive(Component)]
@@ -735,6 +738,7 @@ fn party_system(
     mut text_query: Query<&mut Text, Without<NText>>,
     mut n_text_query: Query<&mut Text, With<NText>>,
     camera: Query<Entity, With<PanOrbitCamera>>,
+    music: Query<Entity, With<MusicTag>>,
     config: Res<Config>,
     mut in_party: Local<bool>,
     mut commands: Commands,
@@ -795,6 +799,16 @@ fn party_system(
                 composite_mode: BloomCompositeMode::Additive,
                 ..default()
             });
+            commands.spawn((
+                AudioBundle {
+                    source: asset_server.load("space_cates.mp3"),
+                    settings: PlaybackSettings {
+                        mode: PlaybackMode::Loop,
+                        ..default()
+                    },
+                },
+                MusicTag,
+            ));
         }
         commands.entity(camera).insert(FogSettings {
             color: Color::Rgba {
@@ -820,6 +834,10 @@ fn party_system(
         }
     } else if *in_party {
         commands.entity(camera).remove::<FogSettings>();
+        commands.entity(camera).remove::<BloomSettings>();
+        if let Ok(music) = music.get_single() {
+            commands.entity(music).despawn_recursive();
+        }
         n_text.sections[0].style.color = Color::WHITE;
         for (mut border_color, children, _) in &mut interaction_query {
             let mut text = text_query.get_mut(children[0]).unwrap();
