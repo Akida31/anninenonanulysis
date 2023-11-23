@@ -14,6 +14,7 @@ struct Config {
     show_incremental_cubes: bool,
     show_function: bool,
     show_full_grid: bool,
+    show_party: bool,
 }
 
 impl Default for Config {
@@ -23,6 +24,7 @@ impl Default for Config {
             show_full_grid: true,
             show_incremental_cubes: true,
             show_function: true,
+            show_party: false,
         }
     }
 }
@@ -63,6 +65,7 @@ pub fn app(fullscreen: bool) -> App {
     app.add_systems(Startup, setup)
         .add_systems(Update, grid)
         .add_systems(Update, plane)
+        .add_systems(Update, party_system)
         .add_systems(Update, button_system)
         .add_systems(Update, change_cubes)
         .add_systems(Update, delete_cubes.after(change_cubes))
@@ -395,7 +398,12 @@ fn grid(mut gizmos: Gizmos, orbit_cameras: Query<&PanOrbitCamera>, config: Res<C
 
 // const SCALE: Float = 4.;
 
-fn setup(mut commands: Commands, mut gizmo: ResMut<GizmoConfig>) {
+fn setup(
+    mut commands: Commands,
+    mut gizmo: ResMut<GizmoConfig>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+) {
     // circular base
     /*commands.spawn(PbrBundle {
         mesh: meshes.add(shape::Circle::new(4.0).into()),
@@ -411,7 +419,18 @@ fn setup(mut commands: Commands, mut gizmo: ResMut<GizmoConfig>) {
         transform: Transform::from_xyz(1.0, 0.0, 1.0),
         ..default()
     });*/
-
+    // sky
+    commands.spawn(PbrBundle {
+        mesh: meshes.add(Mesh::from(shape::Box::default())),
+        material: materials.add(StandardMaterial {
+            base_color: Color::hex("080808").unwrap(),
+            unlit: true,
+            cull_mode: None,
+            ..default()
+        }),
+        transform: Transform::from_scale(Vec3::splat(1_000_000.0)),
+        ..default()
+    });
     // light
     commands.spawn(PointLightBundle {
         point_light: PointLight {
@@ -496,26 +515,6 @@ fn setup(mut commands: Commands, mut gizmo: ResMut<GizmoConfig>) {
                     ));
                 }
             };
-            /*parent.spawn((
-                TextBundle::from_section(
-                    format!("n: {}", Config::default().n),
-                    TextStyle {
-                        font_size: 22.,
-                        ..default()
-                    },
-                )
-                .with_style(Style {
-                    width: Val::Px(200.0),
-                    height: Val::Px(65.0),
-                    border: UiRect::all(Val::Px(5.0)),
-                    justify_content: JustifyContent::Center,
-                    align_items: AlignItems::Center,
-                    padding: UiRect::all(Val::Px(5.0)),
-                    margin: UiRect::vertical(Val::Px(5.0)),
-                    ..default()
-                }),
-                NText,
-            ));*/
             parent
                 .spawn(NodeBundle {
                     style: Style {
@@ -533,14 +532,17 @@ fn setup(mut commands: Commands, mut gizmo: ResMut<GizmoConfig>) {
                     ..default()
                 })
                 .with_children(|parent| {
-                    parent.spawn((TextBundle::from_section(
-                        format!("n: {}", Config::default().n),
-                        TextStyle {
-                            font_size: 22.0,
-                            color: Color::rgb(0.9, 0.9, 0.9),
-                            ..default()
-                        },
-                    ), NText));
+                    parent.spawn((
+                        TextBundle::from_section(
+                            format!("n: {}", Config::default().n),
+                            TextStyle {
+                                font_size: 22.0,
+                                color: Color::rgb(0.9, 0.9, 0.9),
+                                ..default()
+                            },
+                        ),
+                        NText,
+                    ));
                 });
 
             parent
@@ -558,6 +560,9 @@ fn setup(mut commands: Commands, mut gizmo: ResMut<GizmoConfig>) {
             parent
                 .spawn((button(), ConfigCoord))
                 .with_children(text_child(format!("{} :)", SHOW_COORD)));
+            parent
+                .spawn((button(), ConfigParty))
+                .with_children(text_child(format!("{}", SHOW_PARTY)));
         });
 
     // set grid line width
@@ -567,6 +572,7 @@ fn setup(mut commands: Commands, mut gizmo: ResMut<GizmoConfig>) {
 const SHOW_FUN: &'static str = "Zeige Funktionsgraph";
 const SHOW_INC: &'static str = "Zeige Zwischendinge";
 const SHOW_COORD: &'static str = "Zeige alle Koordinaten";
+const SHOW_PARTY: &'static str = "party? :o";
 
 const NORMAL_BUTTON: Color = Color::rgb(0.15, 0.15, 0.15);
 const HOVERED_BUTTON: Color = Color::rgb(0.25, 0.25, 0.25);
@@ -583,6 +589,8 @@ struct ConfigIncremental;
 #[derive(Component)]
 struct ConfigCoord;
 #[derive(Component)]
+struct ConfigParty;
+#[derive(Component)]
 struct NText;
 
 fn button_system(
@@ -598,6 +606,7 @@ fn button_system(
                 Option<&ConfigFunctionGraph>,
                 Option<&ConfigIncremental>,
                 Option<&ConfigCoord>,
+                Option<&ConfigParty>,
             ),
         ),
         (Changed<Interaction>, With<Button>),
@@ -606,8 +615,13 @@ fn button_system(
     mut n_text_query: Query<&mut Text, With<NText>>,
     mut config: ResMut<Config>,
 ) {
-    for (interaction, mut color, mut border_color, children, (more, less, fun, inc, coord)) in
-        &mut interaction_query
+    for (
+        interaction,
+        mut color,
+        mut border_color,
+        children,
+        (more, less, fun, inc, coord, party),
+    ) in &mut interaction_query
     {
         let mut text = text_query.get_mut(children[0]).unwrap();
         let mut n_text = n_text_query.get_single_mut().unwrap();
@@ -626,7 +640,7 @@ fn button_system(
                     text.sections[0].value = format!(
                         "{}{}",
                         SHOW_FUN,
-                        if config.show_function { " :) " } else { "" }
+                        if config.show_function { " :)" } else { "" }
                     );
                 } else if inc.is_some() {
                     config.show_incremental_cubes = !config.show_incremental_cubes;
@@ -634,7 +648,7 @@ fn button_system(
                         "{}{}",
                         SHOW_INC,
                         if config.show_incremental_cubes {
-                            " :) "
+                            " :)"
                         } else {
                             ""
                         }
@@ -644,7 +658,14 @@ fn button_system(
                     text.sections[0].value = format!(
                         "{}{}",
                         SHOW_COORD,
-                        if config.show_full_grid { " :) " } else { "" }
+                        if config.show_full_grid { " :)" } else { "" }
+                    );
+                } else if party.is_some() {
+                    config.show_party = !config.show_party;
+                    text.sections[0].value = format!(
+                        "{}{}",
+                        SHOW_PARTY,
+                        if config.show_party { " :^)" } else { "" }
                     );
                 }
             }
@@ -656,6 +677,98 @@ fn button_system(
                 *color = NORMAL_BUTTON.into();
                 border_color.0 = Color::BLACK;
             }
+        }
+    }
+}
+
+fn party_system(
+    time: Res<Time>,
+    mut interaction_query: Query<
+        (
+            &mut BorderColor,
+            &Children,
+            (
+                Option<&ConfigMore>,
+                Option<&ConfigLess>,
+                Option<&ConfigFunctionGraph>,
+                Option<&ConfigIncremental>,
+                Option<&ConfigCoord>,
+                Option<&ConfigParty>,
+            ),
+        ),
+        With<Button>,
+    >,
+    mut text_query: Query<&mut Text, Without<NText>>,
+    mut n_text_query: Query<&mut Text, With<NText>>,
+    camera: Query<Entity, With<PanOrbitCamera>>,
+    config: Res<Config>,
+    mut commands: Commands,
+) {
+    let seconds = time.elapsed_seconds();
+
+    let mut n_text = n_text_query.get_single_mut().unwrap();
+    let Ok(camera) = camera.get_single() else {
+        return;
+    };
+    if config.show_party {
+        n_text.sections[0].style.color = Color::Rgba {
+            red: (4.25 * seconds).sin() / 2.0 + 0.5,
+            green: (3.75 * seconds).sin() / 2.0 + 0.5,
+            blue: (2.50 * seconds).sin() / 2.0 + 0.5,
+            alpha: 1.0,
+        };
+
+        for (mut border_color, children, (more, less, fun, inc, coord, party)) in
+            &mut interaction_query
+        {
+            let mut text = text_query.get_mut(children[0]).unwrap();
+
+            let colors = [
+                (4.2, 1.5, 0.4),
+                (5., 0., 3.5),
+                (0., 7.5, 6.),
+                (9., 0., 0.5),
+                (0.8, 8.5, 7.5),
+                (10., 15., 8.),
+            ];
+            let math = [
+                more.is_some(),
+                less.is_some(),
+                fun.is_some(),
+                inc.is_some(),
+                coord.is_some(),
+                party.is_some(),
+            ];
+            for ((r, g, b), m) in colors.into_iter().zip(math) {
+                if m {
+                    let color = Color::Rgba {
+                        red: (r * seconds).sin() / 2.0 + 0.5,
+                        green: (g * seconds).sin() / 2.0 + 0.5,
+                        blue: (b * seconds).sin() / 2.0 + 0.5,
+                        alpha: 1.0,
+                    };
+                    text.sections[0].style.color = color;
+                    *border_color = BorderColor(color.with_l(0.5));
+                }
+            }
+        }
+        commands.entity(camera).insert(FogSettings {
+            color: Color::Rgba {
+                red: (1. * seconds).sin() / 2.0 + 0.5,
+                green: (0.5 * seconds).sin() / 2.0 + 0.5,
+                blue: (2. * seconds).sin() / 2.0 + 0.5,
+                alpha: 0.2,
+            },
+            falloff: FogFalloff::Exponential { density: 0.05 },
+            ..default()
+        });
+    } else {
+        commands.entity(camera).remove::<FogSettings>();
+        n_text.sections[0].style.color = Color::WHITE;
+        for (mut border_color, children, _) in &mut interaction_query {
+            let mut text = text_query.get_mut(children[0]).unwrap();
+            text.sections[0].style.color = Color::WHITE;
+            border_color.0 = Color::BLACK;
         }
     }
 }

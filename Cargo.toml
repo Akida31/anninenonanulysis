@@ -74,4 +74,5 @@ bevy-inspector-egui = "0.21.0"
 bevy_panorbit_camera = { version = "0.9.0", features = ["bevy_egui"] }
 # bevy_touch_camera = "0.1.1"
 bevy_touch_camera = { version = "0.1.1", path = "bevy_touch_camera" }
+fastrand = "2.0.1"
 log.workspace = true
