@@ -5,18 +5,18 @@ use bevy::{
     prelude::*,
     window::WindowMode,
 };
+#[cfg(feature = "inspect")]
 use bevy_inspector_egui::prelude::*;
 #[cfg(feature = "inspect")]
 use bevy_inspector_egui::quick::ResourceInspectorPlugin;
 use bevy_panorbit_camera::{PanOrbitCamera, PanOrbitCameraPlugin};
-use bevy_touch_camera::TouchCameraTag;
 
 pub const LAUNCHER_TITLE: &str = "integral";
 
-#[derive(Reflect, Resource, InspectorOptions, Clone)]
-#[reflect(Resource, InspectorOptions)]
+#[derive(Reflect, Resource, Clone)]
+#[cfg_attr(feature = "inspect", derive(InspectorOptions), reflect(InspectorOptions))]
 struct Config {
-    #[inspector(min = 0, max = 40)]
+    #[cfg_attr(feature = "inspect", inspector(min = 0, max = 40))]
     n: u8,
     show_incremental_cubes: bool,
     show_function: bool,
@@ -60,8 +60,7 @@ pub fn app(fullscreen: bool) -> App {
             })
             .disable::<LogPlugin>(),
     )
-    .add_plugins(PanOrbitCameraPlugin)
-    .add_plugins(bevy_touch_camera::TouchCameraPlugin::default());
+    .add_plugins(PanOrbitCameraPlugin);
 
     app.init_resource::<Config>()
         .insert_resource(ClearColor(Color::rgb(0.1, 0.1, 0.1)))
@@ -477,7 +476,6 @@ fn setup(
             tonemapping: Tonemapping::TonyMcMapface,
             ..default()
         },
-        TouchCameraTag,
         PanOrbitCamera {
             focus: Vec3::new(0.8, 1.5, 0.7),
             target_focus: Vec3::new(0.8, 1.5, 0.7),
@@ -493,7 +491,7 @@ fn setup(
         },
     ));
     commands.spawn(
-        TextBundle::from_section("Nutze deine Maus, um die Kamera zu bewegen. linke Maus - drehen | rechte Maus - bewegen | zoom Maus - nicht zoomen\nFalls du ein Mensch bist und noch keine Maus gefangen hast, benutze deine Finger (eine Maus ist aber immer von Vorteil!)",
+        TextBundle::from_section("Nutze deine Maus, um die Kamera zu bewegen. linke Maus - drehen | rechte Maus - bewegen | zoom Maus - nicht zoomen\nFalls du ein Mensch bist und noch keine Maus gefangen hast, Pech gehabt!",
             TextStyle { font_size: 16., ..default() }).with_style(
             Style {
                 position_type: PositionType::Absolute,
