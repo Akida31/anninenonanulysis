@@ -1,8 +1,15 @@
-use bevy::{ecs::query::QuerySingleError, log::LogPlugin, prelude::*, window::WindowMode};
+use bevy::{
+    core_pipeline::{bloom::{BloomSettings, BloomCompositeMode}, tonemapping::Tonemapping},
+    ecs::query::QuerySingleError,
+    log::LogPlugin,
+    prelude::*,
+    window::WindowMode,
+};
 use bevy_inspector_egui::prelude::*;
 #[cfg(feature = "inspect")]
 use bevy_inspector_egui::quick::ResourceInspectorPlugin;
 use bevy_panorbit_camera::{PanOrbitCamera, PanOrbitCameraPlugin};
+use bevy_touch_camera::TouchCameraTag;
 
 pub const LAUNCHER_TITLE: &str = "integral";
 
@@ -85,6 +92,7 @@ struct Plane;
 #[derive(Component)]
 struct Cube {
     size_n: u8,
+    prev_n: u8,
 }
 
 #[derive(Event)]
@@ -100,6 +108,9 @@ struct AddCubes {
     show_incremental_cubes: bool,
 }
 
+#[derive(Resource, Default)]
+struct SpawnedCubes(Vec<(u8, u8)>);
+
 type Float = f32;
 
 fn f(x: Float, y: Float) -> Float {
@@ -111,8 +122,18 @@ fn add_cubes(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut er: EventReader<AddCubes>,
+    mut spawned: Local<SpawnedCubes>,
+    mut cubes: Query<(&Cube, &mut Visibility)>,
 ) {
     let mut run = |n: u8, prev_n: u8| {
+        if spawned.0.contains(&(n, prev_n)) {
+            for (cube, mut vis) in &mut cubes {
+                if cube.size_n == n && cube.prev_n == prev_n {
+                    *vis = Visibility::Visible;
+                }
+            }
+            return;
+        }
         let pow2n = 2i32.pow(n.into());
         let size = Float::powi(2.0, -(n as i32));
         let prev_size = if prev_n == 0 {
@@ -120,6 +141,8 @@ fn add_cubes(
         } else {
             Float::powi(2.0, -(prev_n as i32))
         };
+
+        spawned.0.push((n, prev_n));
 
         for i in 0..pow2n {
             for j in 0..pow2n {
@@ -139,7 +162,7 @@ fn add_cubes(
                 );
 
                 commands.spawn((
-                    Cube { size_n: n },
+                    Cube { size_n: n, prev_n },
                     PbrBundle {
                         mesh: meshes.add(Mesh::from(shape::Box {
                             min_x: 0.,
@@ -170,14 +193,15 @@ fn add_cubes(
 }
 
 fn delete_cubes(
-    query: Query<(Entity, &Cube)>,
-    mut commands: Commands,
+    mut query: Query<(/*Entity, */ &Cube, &mut Visibility)>,
+    //mut commands: Commands,
     mut er: EventReader<DeleteCubes>,
 ) {
     for ev in er.read() {
-        for (id, cube) in &query {
+        for (/*id,*/ cube, mut vis) in &mut query {
             if ev.new_n < cube.size_n {
-                commands.entity(id).despawn_recursive();
+                *vis = Visibility::Hidden;
+                // commands.entity(id).despawn_recursive();
             }
         }
     }
@@ -444,10 +468,16 @@ fn setup(
     // camera
     commands.spawn((
         Camera3dBundle {
+            camera: Camera {
+                hdr: true, // 1. HDR is required for bloom
+                ..default()
+            },
             transform: Transform::from_xyz(-4.5, 2., 1.0)
                 .looking_at(Vec3::new(2., 2., 2.), Vec3::Y),
+            tonemapping: Tonemapping::TonyMcMapface,
             ..default()
         },
+        TouchCameraTag,
         PanOrbitCamera {
             focus: Vec3::new(0.8, 1.5, 0.7),
             target_focus: Vec3::new(0.8, 1.5, 0.7),
@@ -576,7 +606,6 @@ const SHOW_PARTY: &'static str = "party? :o";
 
 const NORMAL_BUTTON: Color = Color::rgb(0.15, 0.15, 0.15);
 const HOVERED_BUTTON: Color = Color::rgb(0.25, 0.25, 0.25);
-const PRESSED_BUTTON: Color = Color::rgb(0.35, 0.75, 0.35);
 
 #[derive(Component)]
 struct ConfigMore;
@@ -627,7 +656,7 @@ fn button_system(
         let mut n_text = n_text_query.get_single_mut().unwrap();
         match *interaction {
             Interaction::Pressed => {
-                *color = PRESSED_BUTTON.into();
+                *color = HOVERED_BUTTON.into();
                 border_color.0 = Color::RED;
                 if more.is_some() {
                     config.n += 1;
@@ -702,7 +731,10 @@ fn party_system(
     mut n_text_query: Query<&mut Text, With<NText>>,
     camera: Query<Entity, With<PanOrbitCamera>>,
     config: Res<Config>,
+    mut in_party: Local<bool>,
     mut commands: Commands,
+    mut cubes: Query<(&mut Cube, &mut Handle<StandardMaterial>)>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     let seconds = time.elapsed_seconds();
 
@@ -752,17 +784,31 @@ fn party_system(
                 }
             }
         }
+        if !*in_party {
+            commands.entity(camera).insert(BloomSettings {
+                intensity: 0.4,
+                composite_mode: BloomCompositeMode::Additive,
+                ..default()
+            });
+        }
         commands.entity(camera).insert(FogSettings {
             color: Color::Rgba {
-                red: (1. * seconds).sin() / 2.0 + 0.5,
-                green: (0.5 * seconds).sin() / 2.0 + 0.5,
-                blue: (2. * seconds).sin() / 2.0 + 0.5,
+                red: ((1. * seconds).sin() / 2.0 + 0.5) / 3.0,
+                green: ((0.5 * seconds).sin() / 2.0 + 0.5) / 3.0,
+                blue: ((2. * seconds).sin() / 2.0 + 0.5) / 3.0,
                 alpha: 0.2,
             },
             falloff: FogFalloff::Exponential { density: 0.05 },
             ..default()
         });
-    } else {
+        for (cube, mut material) in &mut cubes {
+            //let mut material = materials.get_mut(material);
+            *material = materials.add(StandardMaterial {
+                emissive: Color::rgb_u8(124, (40 * cube.size_n).min(255), 255 / cube.size_n).into(),
+                ..default()
+            });
+        }
+    } else if *in_party {
         commands.entity(camera).remove::<FogSettings>();
         n_text.sections[0].style.color = Color::WHITE;
         for (mut border_color, children, _) in &mut interaction_query {
@@ -770,5 +816,11 @@ fn party_system(
             text.sections[0].style.color = Color::WHITE;
             border_color.0 = Color::BLACK;
         }
+        for (cube, mut material) in &mut cubes {
+            //let mut material = materials.get_mut(material);
+            *material = materials
+                .add(Color::rgb_u8(124, (40 * cube.size_n).min(255), 255 / cube.size_n).into());
+        }
     }
+    *in_party = config.show_party;
 }
