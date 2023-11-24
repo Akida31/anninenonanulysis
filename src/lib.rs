@@ -53,23 +53,24 @@ pub fn app(fullscreen: bool) -> App {
     };
 
     let mut app = App::new();
-    app.add_plugins(
-        DefaultPlugins
-            .set(WindowPlugin {
-                primary_window: Some(Window {
-                    mode,
-                    title: LAUNCHER_TITLE.to_string(),
-                    fit_canvas_to_parent: true,
-                    prevent_default_event_handling: true,
-                    present_mode: bevy::window::PresentMode::AutoVsync,
-                    decorations: false,
-                    ..default()
-                }),
-                ..default()
-            })
-            .disable::<LogPlugin>(),
-    )
-    .add_plugins(PanOrbitCameraPlugin);
+    let default_plugins = DefaultPlugins.set(WindowPlugin {
+        primary_window: Some(Window {
+            mode,
+            title: LAUNCHER_TITLE.to_string(),
+            fit_canvas_to_parent: true,
+            prevent_default_event_handling: true,
+            present_mode: bevy::window::PresentMode::AutoVsync,
+            decorations: false,
+            ..default()
+        }),
+        ..default()
+    });
+
+    #[cfg(not(feature = "inspect"))]
+    let default_plugins = default_plugins.disable::<LogPlugin>();
+
+    app.add_plugins(default_plugins)
+        .add_plugins(PanOrbitCameraPlugin);
 
     app.init_resource::<Config>()
         .insert_resource(ClearColor(Color::rgb(0.1, 0.1, 0.1)))
