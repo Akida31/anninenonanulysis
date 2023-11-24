@@ -46,7 +46,7 @@ impl Default for Config {
 }
 
 pub fn app(fullscreen: bool) -> App {
-    let mode = if false && fullscreen {
+    let mode = if fullscreen {
         WindowMode::BorderlessFullscreen
     } else {
         WindowMode::Windowed
@@ -597,10 +597,10 @@ fn setup(
     gizmo.line_width = 0.5;
 }
 
-const SHOW_FUN: &'static str = "Zeige Funktionsgraph";
-const SHOW_INC: &'static str = "Zeige Zwischendinge";
-const SHOW_COORD: &'static str = "Zeige alle Koordinaten";
-const SHOW_PARTY: &'static str = "party? :o";
+const SHOW_FUN: &str = "Zeige Funktionsgraph";
+const SHOW_INC: &str = "Zeige Zwischendinge";
+const SHOW_COORD: &str = "Zeige alle Koordinaten";
+const SHOW_PARTY: &str = "party? :o";
 
 const NORMAL_BUTTON: Color = Color::rgb(0.15, 0.15, 0.15);
 const HOVERED_BUTTON: Color = Color::rgb(0.25, 0.25, 0.25);
