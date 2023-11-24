@@ -785,8 +785,8 @@ fn party_system(
         }
         if !*in_party {
             commands.entity(camera).insert(BloomSettings {
-                intensity: 0.4,
-                composite_mode: BloomCompositeMode::Additive,
+                intensity: 0.7,
+                composite_mode: BloomCompositeMode::EnergyConserving,
                 ..default()
             });
             commands.spawn((
