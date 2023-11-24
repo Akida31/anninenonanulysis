@@ -9,6 +9,27 @@ inspect = ["integral/inspect", "wasm-logger"]
 
 [workspace]
 
+[profile.dev]
+opt-level = 1
+incremental = true
+
+[profile.release]
+panic = 'abort'
+codegen-units = 1
+opt-level = 3
+lto = "thin"
+
+[target.'cfg(not(target_arch="wasm32"))'.profile.dev.package."*"]
+opt-level = 3
+
+[target.'cfg(target_arch="wasm32")'.profile.dev.package."*"]
+opt-level = 's'
+
+[target.'cfg(target_arch="wasm32")'.profile.release]
+opt-level = 's'
+[target.'cfg(target="wasm32-unknown-unknown")'.profile.release]
+opt-level = 's'
+
 [dependencies]
 #bevy.workspace = true
 #log.workspace = true
