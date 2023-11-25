@@ -255,6 +255,7 @@ fn plane(
         match plane.get_single_mut() {
             Ok(mut vis_map) => {
                 *vis_map = Visibility::Visible;
+                return;
             }
             Err(QuerySingleError::NoEntities(_)) => {}
             Err(QuerySingleError::MultipleEntities(e)) => unreachable!("{:?}", e),
