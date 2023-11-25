@@ -15,6 +15,7 @@ env:
   # heads-up: this value is used as a pattern in an sed command as a workaround for a trunk issue
   #   if you use special characters, take a look at the 'Make paths relative' step in the 'build-web' job
   GAME_EXECUTABLE_NAME:  anninenonanulysis
+  CARGO_NAME:  native_integral
 
 permissions:
   contents: write
@@ -49,9 +50,9 @@ jobs:
           cargo build --release --features embedded
       - name: Prepare release
         run: |
-          strip target/release/${{ env.GAME_EXECUTABLE_NAME }}
-          chmod +x target/release/${{ env.GAME_EXECUTABLE_NAME }}
-          mv target/release/${{ env.GAME_EXECUTABLE_NAME }} ${{ env.GAME_EXECUTABLE_NAME }}_linux
+          strip target/release/${{ env.CARGO_NAME }}
+          chmod +x target/release/${{ env.CARGO_NAME }}
+          mv target/release/${{ env.CARGO_NAME }} ${{ env.GAME_EXECUTABLE_NAME }}_linux
       - name: Upload release
         uses: svenstaro/upload-release-action@v2
         with:
@@ -80,7 +81,7 @@ jobs:
           cargo build --release --features embedded
       - name: Prepare release
         run: |
-          mv target/release/${{ env.GAME_EXECUTABLE_NAME }}.exe ${{ env.GAME_EXECUTABLE_NAME }}_windows.exe
+          mv target/release/${{ env.CARGO_NAME }}.exe ${{ env.GAME_EXECUTABLE_NAME }}_windows.exe
       - name: Upload release
         uses: svenstaro/upload-release-action@v2
         with:
