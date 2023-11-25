@@ -34,6 +34,9 @@ jobs:
     needs: get-version
     env:
       VERSION: ${{needs.get-version.outputs.version}}
+    defaults:
+      run:
+        working-directory: ./launchers/native
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -45,21 +48,18 @@ jobs:
         run: sudo apt-get update; sudo apt-get install pkg-config libx11-dev libasound2-dev libudev-dev
       - name: Build release
         run: |
-          cargo build --release
+          cargo build --release --features embedded
       - name: Prepare release
         run: |
           strip target/release/${{ env.GAME_EXECUTABLE_NAME }}
           chmod +x target/release/${{ env.GAME_EXECUTABLE_NAME }}
-          mv target/release/${{ env.GAME_EXECUTABLE_NAME }} .
-      - name: Bundle release
-        run: |
-          tar -czf ${{ env.GAME_EXECUTABLE_NAME }}_linux.tar.gz ${{ env.GAME_EXECUTABLE_NAME }} assets credits
+          mv target/release/${{ env.GAME_EXECUTABLE_NAME }} ${{ env.GAME_EXECUTABLE_NAME }}_linux
       - name: Upload release
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: ${{ env.GAME_EXECUTABLE_NAME }}_linux.tar.gz
-          asset_name: ${{ env.GAME_EXECUTABLE_NAME }}_${{ env.VERSION }}_linux.tar.gz
+          file: ./launchers/native/${{ env.GAME_EXECUTABLE_NAME }}_linux
+          asset_name: ${{ env.GAME_EXECUTABLE_NAME }}_${{ env.VERSION }}_linux
           release_name: ${{ env.VERSION }}
           tag: ${{ env.VERSION }}
           overwrite: true
@@ -69,7 +69,9 @@ jobs:
     needs: get-version
     env:
       VERSION: ${{needs.get-version.outputs.version}}
-      BUILD_INSTALLER: false
+    defaults:
+      run:
+        working-directory: ./launchers/native
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -77,43 +79,19 @@ jobs:
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: stable
-      - name: Install dotnet
-        if: ${{ env.BUILD_INSTALLER }}
-        uses: actions/setup-dotnet@v3
-        with:
-          global-json-file: build/windows/installer/global.json
       - name: Build release
         run: |
-          cargo build --release
+          cargo build --release --features embedded
       - name: Prepare release
         run: |
-          mkdir target/release/assets && cp -r assets target/release/assets
-          mkdir target/release/credits && cp -r credits target/release/credits
-      - name: Zip release
-        uses: vimtor/action-zip@v1
-        with:
-          files: target/release/assets/ target/release/credits/ target/release/${{ env.GAME_EXECUTABLE_NAME }}.exe
-          dest: ${{ env.GAME_EXECUTABLE_NAME }}_windows.zip
-      - name: Create Installer
-        if: ${{ env.BUILD_INSTALLER }}
-        run: dotnet build -p:Version=1.2.3 -c Release build/windows/installer/Installer.wixproj --output installer
+          mv target/release/${{ env.GAME_EXECUTABLE_NAME }}.exe ${{ env.GAME_EXECUTABLE_NAME }}_windows.exe
       - name: Upload release
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: ${{ env.GAME_EXECUTABLE_NAME }}_windows.zip
-          asset_name: ${{ env.GAME_EXECUTABLE_NAME }}_${{ env.VERSION }}_windows.zip
+          file: ./launchers/native/${{ env.GAME_EXECUTABLE_NAME }}_windows.exe
+          asset_name: ${{ env.GAME_EXECUTABLE_NAME }}_${{ env.VERSION }}_windows.exe
           tag: ${{ github.ref }}
-          overwrite: true
-      - name: Upload installer
-        if: ${{ env.BUILD_INSTALLER }}
-        uses: svenstaro/upload-release-action@v2
-        with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: installer/en-US/installer.msi
-          asset_name: ${{ env.GAME_EXECUTABLE_NAME }}_${{ steps.tag.outputs.tag }}_windows.msi
-          release_name: ${{ env.VERSION }}
-          tag: ${{ env.VERSION }}
           overwrite: true
 
   build-web:
@@ -121,6 +99,9 @@ jobs:
     needs: get-version
     env:
       VERSION: ${{needs.get-version.outputs.version}}
+    defaults:
+      run:
+        working-directory: ./launchers/wasm
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -143,7 +124,7 @@ jobs:
       - name: Optimize Wasm
         uses: NiklasEi/wasm-opt-action@v2
         with:
-          file: dist/*.wasm
+          file: ./launchers/wasm/dist/*.wasm
         # Trunk cannot import assets from relative paths (see e.g. https://github.com/thedodd/trunk/issues/395)
         # On sites like itch.io, we don't know on which base path the game gets served, so we need to rewrite all links to be relative
       - name: Make paths relative
@@ -153,13 +134,13 @@ jobs:
       - name: Zip release
         uses: vimtor/action-zip@v1
         with:
-          files: dist/
-          dest: ${{ env.GAME_EXECUTABLE_NAME }}_web.zip
+          files: ./launchers/wasm/dist/
+          dest: ./launchers/wasm/${{ env.GAME_EXECUTABLE_NAME }}_web.zip
       - name: Upload release
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: ${{ env.GAME_EXECUTABLE_NAME }}_web.zip
+          file: ./launchers/wasm/${{ env.GAME_EXECUTABLE_NAME }}_web.zip
           asset_name: ${{ env.GAME_EXECUTABLE_NAME }}_${{ env.VERSION }}_web.zip
           release_name: ${{ env.VERSION }}
           tag: ${{ env.VERSION }}
