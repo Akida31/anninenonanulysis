@@ -9,6 +9,9 @@ permissions:
 jobs:
   build-web:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./launchers/wasm
 
     steps:
       - name: Checkout repository
